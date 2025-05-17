@@ -2,6 +2,9 @@
 
 This project implements a classic **3-tier architecture** for a web application using **Azure Bicep**. The infrastructure is fully deployable and includes network isolation, a public load balancer, virtual machines, a managed MySQL database, and backup configuration using a Recovery Services Vault.
 
+![image](https://github.com/user-attachments/assets/dcb05b8a-484a-4daa-9f33-b376878136a0)
+
+
 ---
 
 ## 🧱 Architecture Overview
