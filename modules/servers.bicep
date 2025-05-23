@@ -1,0 +1,109 @@
+param location string
+
+param tiers array
+
+param numberOfServers int
+
+param subnetIds array
+
+@secure()
+param serverAdminLogin string
+
+@secure()
+param serverAdminLoginPassword string
+
+resource webTierNics 'Microsoft.Network/networkInterfaces@2024-05-01' = [for i in range(0,numberOfServers): {
+  name:'nic-webtier-${i+1}'
+  location:location
+  properties:{
+    ipConfigurations:[
+      {
+        name:'nic-webtier-ipconfig-${i+1}'
+        properties:{
+          subnet:{
+            id:subnetIds[0].subnetId
+          }
+        }
+      }
+    ]
+  }
+}]
+
+resource appTierNics 'Microsoft.Network/networkInterfaces@2024-05-01' = [for i in range(0,numberOfServers): {
+  name:'nic-apptier-${i+1}'
+  location:location
+  properties:{
+    ipConfigurations:[
+      {
+        name:'nic-apptier-ipconfig-${i+1}'
+        properties:{
+          subnet:{
+            id:subnetIds[1].subnetId
+          }
+        }
+      }
+    ]
+  }
+}]
+
+resource webTierServers 'Microsoft.Compute/virtualMachines@2024-11-01' = [for i in range(0,numberOfServers): {
+  name: 'vm-webtier-${i+1}'
+  location: location
+  properties:{
+    hardwareProfile: {
+      vmSize: 'Standard_B1s'
+    }
+    storageProfile:{
+      imageReference:{
+        publisher: 'Canonical'
+        offer: 'UbuntuServer'
+        sku: '18.04-LTS'
+        version:'latest'
+      }
+      osDisk:{
+        createOption: 'FromImage'
+      }
+    }
+    osProfile:{
+      computerName:'vm-webtier-${i+1}'
+      adminUsername: serverAdminLogin
+      adminPassword: serverAdminLoginPassword
+    }
+    networkProfile:{
+      networkInterfaces:[{
+        id: webTierNics[i].id
+      }]
+    }
+  }
+}]
+
+resource appTierServers 'Microsoft.Compute/virtualMachines@2024-11-01' = [for i in range(0,numberOfServers): {
+  name: 'vm-apptier-${i+1}'
+  location: location
+  properties:{
+    hardwareProfile: {
+      vmSize: 'Standard_B1s'
+    }
+    storageProfile:{
+      imageReference:{
+        publisher: 'Canonical'
+        offer: 'UbuntuServer'
+        sku: '18.04-LTS'
+        version:'latest'
+      }
+      osDisk:{
+        createOption: 'FromImage'
+      }
+    }
+    osProfile:{
+      computerName:'vm-apptier-${i+1}'
+      adminUsername: serverAdminLogin
+      adminPassword: serverAdminLoginPassword
+    }
+    networkProfile:{
+      networkInterfaces:[{
+        id: appTierNics[i].id
+      }]
+    }
+  }
+}]
