@@ -20,11 +20,19 @@ var tiers = [
   'bastion'
 ]
 
+@description('Resources that require public IP addresses')
+var publicIpResources = [
+  'bastion'
+  'natGateway'
+  'externalLoadBalancer'
+]
+
 
 module vnet 'modules/network.bicep' = {
   params: {
     location: location
     tiers: tiers
+    publicIpResources: publicIpResources
   }
 }
 
