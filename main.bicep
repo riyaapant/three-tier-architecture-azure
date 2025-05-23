@@ -1,14 +1,6 @@
 @description('Location to deploy the resources in')
 param location string = 'westeurope'
 
-@description('Tiers required in the architecture')
-param tiers array = [
-  'webtier'
-  'apptier'
-  'datatier'
-  'bastion'
-]
-
 @description('Number of virtual machines to deploy in each tier')
 param numberOfServers int = 2
 
@@ -19,6 +11,15 @@ param serverAdminLogin string
 @secure()
 @description('Password for server/database admin')
 param serverAdminLoginPassword string
+
+@description('Tiers required in the architecture')
+var tiers = [
+  'webtier'
+  'apptier'
+  'datatier'
+  'bastion'
+]
+
 
 module vnet 'modules/network.bicep' = {
   params: {
