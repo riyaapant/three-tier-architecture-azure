@@ -44,5 +44,9 @@ module servers 'modules/servers.bicep' = {
     serverAdminLogin: serverAdminLogin
     serverAdminLoginPassword: serverAdminLoginPassword
     subnetIds: vnet.outputs.subnetIds
+    externalLoadBalancerBackendAddressPoolId: vnet.outputs.externalLoadBalancerBackendPoolId
+    internalLoadBalancerBackendAddressPoolId: vnet.outputs.internalLoadBalancerBackendPoolId
   }
 }
+
+output publicLoadBalancerIp string = vnet.outputs.externalLoadBalancerPublicIp

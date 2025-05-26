@@ -6,6 +6,10 @@ param numberOfServers int
 
 param subnetIds array
 
+param externalLoadBalancerBackendAddressPoolId string
+
+param internalLoadBalancerBackendAddressPoolId string
+
 @secure()
 param serverAdminLogin string
 
@@ -23,6 +27,11 @@ resource webTierNics 'Microsoft.Network/networkInterfaces@2024-05-01' = [for i i
           subnet:{
             id:subnetIds[0].subnetId
           }
+          loadBalancerBackendAddressPools:[
+            {
+              id: externalLoadBalancerBackendAddressPoolId
+            }
+          ]
         }
       }
     ]
@@ -40,6 +49,9 @@ resource appTierNics 'Microsoft.Network/networkInterfaces@2024-05-01' = [for i i
           subnet:{
             id:subnetIds[1].subnetId
           }
+          loadBalancerBackendAddressPools:[{
+            id: internalLoadBalancerBackendAddressPoolId
+          }]
         }
       }
     ]
