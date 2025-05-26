@@ -159,6 +159,8 @@ resource externalLoadBalancer 'Microsoft.Network/loadBalancers@2024-05-01' = {
   }
 }
 
+var appTierIndex = indexOf(tiers,'apptier')
+
 resource internalLoadBalancer 'Microsoft.Network/loadBalancers@2024-05-01' = {
   name: 'internal-load-balancer'
   location:location
@@ -172,7 +174,8 @@ resource internalLoadBalancer 'Microsoft.Network/loadBalancers@2024-05-01' = {
         subnet:{
           id: resourceId('Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, 'subnet-apptier')
         }
-        privateIPAllocationMethod: 'Dynamic'
+        privateIPAddress:'10.0.${appTierIndex+1}.10'
+        privateIPAllocationMethod: 'Static'
       }
     }]
     backendAddressPools:[{
