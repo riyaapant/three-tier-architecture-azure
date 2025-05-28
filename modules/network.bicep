@@ -7,6 +7,7 @@ param tiers array
 @description('Resources that require public IP addresses')
 param publicIpResources array
 
+@description('virtual network name')
 var virtualNetworkName = 'myvnet'
 
 resource publicIps 'Microsoft.Network/publicIPAddresses@2024-05-01' = [
@@ -40,8 +41,8 @@ resource natGateway 'Microsoft.Network/natGateways@2024-05-01' = {
   }
 }
 
-resource webTierNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
-  name: 'web-tier-nsg'
+resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
+  name: 'networkSecurityGroup'
   location: location
   properties: {
     securityRules: [
@@ -80,8 +81,8 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
             id: natGateway.id
           }
           networkSecurityGroup: tier == 'webtier'
-            ? { id: webTierNsg.id }
-            : tier == 'apptier' ? { id: webTierNsg.id } : null
+            ? { id: networkSecurityGroup.id }
+            : tier == 'apptier' ? { id: networkSecurityGroup.id } : null
           delegations: tier == 'datatier'
             ? [
                 {
@@ -194,6 +195,7 @@ resource externalLoadBalancer 'Microsoft.Network/loadBalancers@2024-05-01' = {
   }
 }
 
+@description('Extracting index of app tier')
 var appTierIndex = indexOf(tiers, 'apptier')
 
 resource internalLoadBalancer 'Microsoft.Network/loadBalancers@2024-05-01' = {
@@ -280,7 +282,7 @@ resource vnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06
     virtualNetwork: {
       id: virtualNetwork.id
     }
-    registrationEnabled: true
+    registrationEnabled: false
   }
 }
 

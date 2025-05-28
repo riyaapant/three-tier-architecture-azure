@@ -1,5 +1,5 @@
 @description('Location to deploy the resources in')
-param location string = 'swedencentral'
+param location string = resourceGroup().location
 
 @description('Number of virtual machines to deploy in each tier')
 param numberOfServers int = 2

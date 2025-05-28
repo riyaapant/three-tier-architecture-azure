@@ -1,21 +1,30 @@
+@description('Location to deploy resources in')
 param location string
 
+@description('Tiers required in the architecture')
 param tiers array
 
+@description('Number of virtual machines in each tier')
 param numberOfServers int
 
+@description('Ids of subnets')
 param subnetIds array
 
+@description('Id of backend pool of external load balancer')
 param externalLoadBalancerBackendAddressPoolId string
 
+@description('Id of backend pool of internal load balancer')
 param internalLoadBalancerBackendAddressPoolId string
 
+@description('Id of private DNS zone')
 param privateDnsZoneId string
 
 @secure()
+@description('Username for server admin')
 param serverAdminLogin string
 
 @secure()
+@description('Password for server admin')
 param serverAdminLoginPassword string
 
 resource webTierNics 'Microsoft.Network/networkInterfaces@2024-05-01' = [
@@ -138,7 +147,7 @@ resource appTierServers 'Microsoft.Compute/virtualMachines@2024-11-01' = [
 
 resource mysqlServer 'Microsoft.DBforMySQL/flexibleServers@2024-10-01-preview' = {
   name: 'mysqlserver${uniqueString(resourceGroup().name)}'
-  location: 'Sweden Central'
+  location: location
   sku: {
     name: 'Standard_B1ms'
     tier: 'Burstable'
