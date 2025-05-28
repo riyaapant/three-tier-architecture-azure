@@ -23,38 +23,42 @@ resource publicIps 'Microsoft.Network/publicIPAddresses@2024-05-01' = [
 ]
 
 @description('Extraction NAT Gateway public IP')
-var natGatewayPublicIp = publicIps[indexOf(publicIpResources,'natGateway')]
+var natGatewayPublicIp = publicIps[indexOf(publicIpResources, 'natGateway')]
 
-resource natGateway 'Microsoft.Network/natGateways@2024-05-01'={
-  name:'nat-gateway'
-  location:location
-  properties:{
-    publicIpAddresses:[{
-      id: natGatewayPublicIp.id
-    }]
+resource natGateway 'Microsoft.Network/natGateways@2024-05-01' = {
+  name: 'nat-gateway'
+  location: location
+  properties: {
+    publicIpAddresses: [
+      {
+        id: natGatewayPublicIp.id
+      }
+    ]
   }
-  sku:{
-    name:'Standard'
+  sku: {
+    name: 'Standard'
   }
 }
 
 resource webTierNsg 'Microsoft.Network/networkSecurityGroups@2024-05-01' = {
-  name:'web-tier-nsg'
-  location:location
-  properties:{
-    securityRules:[{
-      name:'AllowAnyHTTPInbond'
-      properties:{
-        priority: 100
-        direction:'Inbound'
-        access:'Allow'
-        protocol:'Tcp'
-        sourcePortRange:'*'
-        destinationPortRange: '80'
-        sourceAddressPrefix: '*'
-        destinationAddressPrefix: '*'
+  name: 'web-tier-nsg'
+  location: location
+  properties: {
+    securityRules: [
+      {
+        name: 'AllowAnyHTTPInbond'
+        properties: {
+          priority: 100
+          direction: 'Inbound'
+          access: 'Allow'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '80'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+        }
       }
-    }]
+    ]
   }
 }
 
@@ -72,10 +76,22 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         name: tier == 'bastion' ? 'AzureBastionSubnet' : 'subnet-${tier}'
         properties: {
           addressPrefix: '10.0.${i+1}.0/24'
-          natGateway:{
+          natGateway: {
             id: natGateway.id
           }
-          networkSecurityGroup: tier == 'webtier' ? {id: webTierNsg.id} : tier == 'apptier' ? {id: webTierNsg.id} : null
+          networkSecurityGroup: tier == 'webtier'
+            ? { id: webTierNsg.id }
+            : tier == 'apptier' ? { id: webTierNsg.id } : null
+          delegations: tier == 'datatier'
+            ? [
+                {
+                  name: 'mysql-server-delegation'
+                  properties: {
+                    serviceName: 'Microsoft.DBforMySQL/flexibleServers'
+                  }
+                }
+              ]
+            : []
         }
       }
     ]
@@ -83,11 +99,12 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
 }
 
 @description('Extracting bastion public IP')
-var bastionPublicIp = publicIps[indexOf(publicIpResources,'bastion')]
+var bastionPublicIp = publicIps[indexOf(publicIpResources, 'bastion')]
 
 resource bastionHost 'Microsoft.Network/bastionHosts@2024-05-01' = {
   name: 'bastion-host'
   location: location
+  dependsOn:[virtualNetwork]
   properties: {
     ipConfigurations: [
       {
@@ -106,111 +123,164 @@ resource bastionHost 'Microsoft.Network/bastionHosts@2024-05-01' = {
 }
 
 @description('Extracting external load balancer public ip')
-var externalLoadBalancerPublicIp = publicIps[indexOf(publicIpResources,'externalLoadBalancer')]
+var externalLoadBalancerPublicIp = publicIps[indexOf(publicIpResources, 'externalLoadBalancer')]
 
 resource externalLoadBalancer 'Microsoft.Network/loadBalancers@2024-05-01' = {
   name: 'external-load-balancer'
-  location:location
-  sku:{
-    name:'Standard'
+  location: location
+  sku: {
+    name: 'Standard'
   }
-  properties:{
-    frontendIPConfigurations:[{
-      name: 'external-load-balancer-frontend'
-      properties:{
-        publicIPAddress:{
-          id: externalLoadBalancerPublicIp.id
+  properties: {
+    frontendIPConfigurations: [
+      {
+        name: 'external-load-balancer-frontend'
+        properties: {
+          publicIPAddress: {
+            id: externalLoadBalancerPublicIp.id
+          }
         }
       }
-    }]
-    backendAddressPools:[{
-      name: 'external-load-balancer-backend-address-pool'
-    }]
-    loadBalancingRules:[{
-      name:'external-load-balancer-load-balancing-rule'
-      properties:{
-        frontendIPConfiguration:{
-          id: resourceId('Microsoft.Network/loadBalancers/frontendIpConfigurations','external-load-balancer','external-load-balancer-frontend')
-        }
-        backendAddressPool:{
-          id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools','external-load-balancer','external-load-balancer-backend-address-pool')
-        }
-        frontendPort: 80
-        backendPort: 80
-        protocol: 'Tcp'
-        loadDistribution: 'Default'
-        probe:{
-          id: resourceId('Microsoft.Network/loadBalancers/probes','external-load-balancer','external-load-balancer-probe')
-        }
-      }
-    }]
-    probes:[{
-      name: 'external-load-balancer-probe'
-      properties:{
-        protocol: 'Tcp'
-        port: 80
-        intervalInSeconds: 5
-        numberOfProbes: 2
-      }
-    }]
-    outboundRules:[
-
     ]
+    backendAddressPools: [
+      {
+        name: 'external-load-balancer-backend-address-pool'
+      }
+    ]
+    loadBalancingRules: [
+      {
+        name: 'external-load-balancer-load-balancing-rule'
+        properties: {
+          frontendIPConfiguration: {
+            id: resourceId(
+              'Microsoft.Network/loadBalancers/frontendIpConfigurations',
+              'external-load-balancer',
+              'external-load-balancer-frontend'
+            )
+          }
+          backendAddressPool: {
+            id: resourceId(
+              'Microsoft.Network/loadBalancers/backendAddressPools',
+              'external-load-balancer',
+              'external-load-balancer-backend-address-pool'
+            )
+          }
+          frontendPort: 80
+          backendPort: 80
+          protocol: 'Tcp'
+          loadDistribution: 'Default'
+          probe: {
+            id: resourceId(
+              'Microsoft.Network/loadBalancers/probes',
+              'external-load-balancer',
+              'external-load-balancer-probe'
+            )
+          }
+        }
+      }
+    ]
+    probes: [
+      {
+        name: 'external-load-balancer-probe'
+        properties: {
+          protocol: 'Tcp'
+          port: 80
+          intervalInSeconds: 5
+          numberOfProbes: 2
+        }
+      }
+    ]
+    outboundRules: []
   }
 }
 
-var appTierIndex = indexOf(tiers,'apptier')
+var appTierIndex = indexOf(tiers, 'apptier')
 
 resource internalLoadBalancer 'Microsoft.Network/loadBalancers@2024-05-01' = {
   name: 'internal-load-balancer'
-  location:location
-  sku:{
-    name:'Standard'
+  location: location
+  sku: {
+    name: 'Standard'
   }
-  properties:{
-    frontendIPConfigurations:[{
-      name: 'internal-load-balancer-frontend'
-      properties:{
-        subnet:{
-          id: resourceId('Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, 'subnet-apptier')
-        }
-        privateIPAddress:'10.0.${appTierIndex+1}.10'
-        privateIPAllocationMethod: 'Static'
-      }
-    }]
-    backendAddressPools:[{
-      name: 'internal-load-balancer-backend-address-pool'
-    }]
-    loadBalancingRules:[{
-      name:'internal-load-balancer-load-balancing-rule'
-      properties:{
-        frontendIPConfiguration:{
-          id: resourceId('Microsoft.Network/loadBalancers/frontendIpConfigurations','internal-load-balancer','internal-load-balancer-frontend')
-        }
-        backendAddressPool:{
-          id: resourceId('Microsoft.Network/loadBalancers/backendAddressPools','internal-load-balancer','internal-load-balancer-backend-address-pool')
-        }
-        frontendPort: 80
-        backendPort: 80
-        protocol: 'Tcp'
-        loadDistribution: 'Default'
-        probe:{
-          id: resourceId('Microsoft.Network/loadBalancers/probes','internal-load-balancer','internal-load-balancer-probe')
+  properties: {
+    frontendIPConfigurations: [
+      {
+        name: 'internal-load-balancer-frontend'
+        properties: {
+          subnet: {
+            id: resourceId('Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, 'subnet-apptier')
+          }
+          privateIPAddress: '10.0.${appTierIndex+1}.10'
+          privateIPAllocationMethod: 'Static'
         }
       }
-    }]
-    probes:[{
-      name: 'internal-load-balancer-probe'
-      properties:{
-        protocol: 'Tcp'
-        port: 80
-        intervalInSeconds: 5
-        numberOfProbes: 2
-      }
-    }]
-    outboundRules:[
-
     ]
+    backendAddressPools: [
+      {
+        name: 'internal-load-balancer-backend-address-pool'
+      }
+    ]
+    loadBalancingRules: [
+      {
+        name: 'internal-load-balancer-load-balancing-rule'
+        properties: {
+          frontendIPConfiguration: {
+            id: resourceId(
+              'Microsoft.Network/loadBalancers/frontendIpConfigurations',
+              'internal-load-balancer',
+              'internal-load-balancer-frontend'
+            )
+          }
+          backendAddressPool: {
+            id: resourceId(
+              'Microsoft.Network/loadBalancers/backendAddressPools',
+              'internal-load-balancer',
+              'internal-load-balancer-backend-address-pool'
+            )
+          }
+          frontendPort: 80
+          backendPort: 80
+          protocol: 'Tcp'
+          loadDistribution: 'Default'
+          probe: {
+            id: resourceId(
+              'Microsoft.Network/loadBalancers/probes',
+              'internal-load-balancer',
+              'internal-load-balancer-probe'
+            )
+          }
+        }
+      }
+    ]
+    probes: [
+      {
+        name: 'internal-load-balancer-probe'
+        properties: {
+          protocol: 'Tcp'
+          port: 80
+          intervalInSeconds: 5
+          numberOfProbes: 2
+        }
+      }
+    ]
+    outboundRules: []
+  }
+}
+
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2024-06-01' = {
+  name: 'privatelink.mysql.database.azure.com'
+  location: 'global'
+}
+
+resource vnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2024-06-01' = {
+  name: 'mysql-private-link'
+  parent: privateDnsZone
+  location: 'global'
+  properties: {
+    virtualNetwork: {
+      id: virtualNetwork.id
+    }
+    registrationEnabled: true
   }
 }
 
@@ -226,3 +296,4 @@ output subnetIds array = [
 output externalLoadBalancerBackendPoolId string = externalLoadBalancer.properties.backendAddressPools[0].id
 output internalLoadBalancerBackendPoolId string = internalLoadBalancer.properties.backendAddressPools[0].id
 output externalLoadBalancerPublicIp string = externalLoadBalancerPublicIp.properties.ipAddress
+output privateDnsZoneId string = privateDnsZone.id

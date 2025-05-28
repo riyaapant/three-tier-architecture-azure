@@ -1,5 +1,5 @@
 @description('Location to deploy the resources in')
-param location string = 'westeurope'
+param location string = 'swedencentral'
 
 @description('Number of virtual machines to deploy in each tier')
 param numberOfServers int = 2
@@ -46,6 +46,7 @@ module servers 'modules/servers.bicep' = {
     subnetIds: vnet.outputs.subnetIds
     externalLoadBalancerBackendAddressPoolId: vnet.outputs.externalLoadBalancerBackendPoolId
     internalLoadBalancerBackendAddressPoolId: vnet.outputs.internalLoadBalancerBackendPoolId
+    privateDnsZoneId: vnet.outputs.privateDnsZoneId
   }
 }
 
