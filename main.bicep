@@ -50,4 +50,9 @@ module servers 'modules/servers.bicep' = {
   }
 }
 
+module backup 'modules/backup.bicep'={
+  params:{
+    location:location
+  }
+}
 output publicLoadBalancerIp string = vnet.outputs.externalLoadBalancerPublicIp
